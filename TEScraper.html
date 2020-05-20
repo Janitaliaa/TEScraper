@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Turnip Exchange</title>
+    <meta charset="utf-8" />
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <style>
+        body {
+            background: #3e3e3e;
+        }
+
+        #result-body {
+            margin-left: 5px;
+            margin-right: 5px;
+        }
+
+        .input-container {
+            color: white;
+            font-size: 15pt;
+        }
+
+        #bell-threshold {
+            width: 50px;
+            border-radius: 5px;
+            font-size: 15pt;
+        }
+    </style>
+    <script>
+        let islands = [];
+        let filtered = [];
+        let triggerAlert = false;
+        let interval;
+
+        function fetch() {
+            $.post("https://api.turnip.exchange/islands/", { "islander": "neither", "category": "turnips", "fee": 1 }, ((res) => {
+                console.log(res);
+                islands = res.islands;
+                process();
+            }));
+
+        }
+
+        function process() {
+            filtered = [];
+            for (let i = 0; i < islands.length; i++) {
+                let island = islands[i];
+                if (island.turnipPrice >= parseInt(document.getElementById('bell-threshold').value)) {
+                    let waitlistPosition = parseInt(island.queued.replace(/Waiting: /g, '').split('/')[0]);
+                    filtered.push({
+                        queued: island.queued,
+                        waitlistPosition: waitlistPosition,
+                        name: island.name,
+                        turnipPrice: island.turnipPrice,
+                        description: island.description,
+                        turnipCode: island.turnipCode,
+                    });
+                    if (waitlistPosition <= 3) {
+                        triggerAlert = true;
+                    }
+                }
+            }
+
+            filtered.sort((a, b) => { return a.waitlistPosition > b.waitlistPosition ? 1 : -1 });
+            console.log(filtered);
+
+            display(filtered);
+        }
+
+        function display(filtered) {
+
+            document.getElementById('result-body').innerHTML = '';
+
+            filtered.forEach((island, index) => {
+                let container = document.getElementById('result-body');
+
+                let islandListing = document.createElement('div');
+                islandListing.style = "margin-top: 20px; background: #33ab98; padding: 5px; border-radius: 10px; overflow-x: auto"
+
+                let islandLink = document.createElement('a');
+                islandLink.id = `i-${index}`
+                islandLink.href = `https://turnip.exchange/island/${island.turnipCode}`
+                islandLink.innerHTML = `${island.queued} | ${island.turnipPrice} | ${island.description}`
+                islandLink.target = "_blank";
+                islandLink.style = "color: white;"
+
+                islandListing.appendChild(islandLink)
+                container.appendChild(islandListing);
+            });
+
+            // trigger an alert
+            if (triggerAlert) {
+                let alertNoise = new Audio('https://flukeout.github.io/simple-sounds/sounds/coin.mp3');
+                alertNoise.play();
+                // alert("Some fresh nips out here yo");
+                triggerAlert = false;
+            }
+        }
+
+        function initialize() {
+            interval = setInterval(fetch, 30000)
+            fetch();
+            document.getElementById('polling-frequency').addEventListener("change", () => {
+                clearInterval(interval);
+                let newFrequency = parseInt(document.getElementById('polling-frequency').value) * 1000;
+                interval = setInterval(fetch, newFrequency);
+            });
+        }
+        window.onload = initialize;
+    </script>
+</head>
+
+<body>
+    <div class="input-container">
+        <div>
+            Bell threshold: <input id="bell-threshold" type="number" value="600">
+        </div>
+        <div>
+            Polling frequency (seconds): <input id="polling-frequency" type="number" value="30">
+        </div>
+    </div>
+    <div id="result-body"></div>
+</body>
+
+</html>
