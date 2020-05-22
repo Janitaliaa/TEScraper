@@ -26,6 +26,22 @@
             border-radius: 5px;
             font-size: 15pt;
         }
+        .button {
+            width: 100px;
+            background: gold;
+            color: black;
+            height: 30px;
+            font-weight: bold;
+            border-radius: 10px;
+            text-align: center;
+            padding: 0px 5px;
+            padding-top: 3px;
+        }
+
+        .button:hover {
+            cursor: pointer;
+            background: #ffdf33;
+        }
     </style>
     <script>
         let islands = [];
@@ -46,7 +62,7 @@
             filtered = [];
             for (let i = 0; i < islands.length; i++) {
                 let island = islands[i];
-                if (island.turnipPrice >= parseInt(document.getElementById('bell-threshold').value)) {
+                if (island.turnipPrice >= parseInt($('#bell-threshold').val())) {
                     let waitlistPosition = parseInt(island.queued.replace(/Waiting: /g, '').split('/')[0]);
                     filtered.push({
                         queued: island.queued,
@@ -56,7 +72,7 @@
                         description: island.description,
                         turnipCode: island.turnipCode,
                     });
-                    if (waitlistPosition <= 3) {
+                    if (waitlistPosition <= parseInt($('#waitlist-threshold').val())) {
                         triggerAlert = true;
                     }
                 }
@@ -70,10 +86,10 @@
 
         function display(filtered) {
 
-            document.getElementById('result-body').innerHTML = '';
+            $('#result-body').html('');
 
             filtered.forEach((island, index) => {
-                let container = document.getElementById('result-body');
+                let container = document.querySelector('#result-body');
 
                 let islandListing = document.createElement('div');
                 islandListing.style = "margin-top: 20px; background: #33ab98; padding: 5px; border-radius: 10px; overflow-x: auto"
@@ -101,10 +117,12 @@
         function initialize() {
             interval = setInterval(fetch, 30000)
             fetch();
+            
             document.getElementById('polling-frequency').addEventListener("change", () => {
                 clearInterval(interval);
                 let newFrequency = parseInt(document.getElementById('polling-frequency').value) * 1000;
                 interval = setInterval(fetch, newFrequency);
+                fetch();
             });
         }
         window.onload = initialize;
@@ -118,6 +136,12 @@
         </div>
         <div>
             Polling frequency (seconds): <input id="polling-frequency" type="number" value="30">
+        </div>
+        <div>
+            Waitlist Alert threshold: <input id="waitlist-threshold" type="number" value="3">
+        </div>
+        <div id="fetch-button" class="button">
+            <div class="button-text" onclick="fetch()">Refresh</div>
         </div>
     </div>
     <div id="result-body"></div>
